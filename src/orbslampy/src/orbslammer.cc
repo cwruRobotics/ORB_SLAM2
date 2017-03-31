@@ -5,9 +5,10 @@
 #include "_orbslampy/support_functions.h"
 #include "_orbslampy/orbslammer.h"
 
-OrbSlammer::OrbSlammer(char* vocabFilePath, char* settingsFilePath,
+OrbSlammer::OrbSlammer(const std::string& vocabFilePath, const std::string& settingsFilePath,
                        SensorType sensor, bool useViewer) : _is_running(true),
-    _slam_system(vocabFilePath, settingsFilePath, get_raw_sensor_type(sensor), useViewer)
+    _slam_system(vocabFilePath, settingsFilePath, get_raw_sensor_type(sensor), useViewer),
+    _num_tracked_points(0)
 {
 }
 
@@ -80,12 +81,26 @@ int OrbSlammer::GetTrackingState()
     return this->_slam_system.GetTrackingState();
 }
 
-std::vector<ORB_SLAM2::MapPoint*> OrbSlammer::GetTrackedMapPoints()
+std::vector<cv::Mat> OrbSlammer::GetMostRecentPointCloud()
 {
-    return this->_slam_system.GetTrackedMapPoints();
+    std::vector<cv::Mat> point_cloud;
+    std::vector<ORB_SLAM2::MapPoint*> all_map_points = this->_slam_system.GetTrackedMapPoints();
+    unsigned int current_num_tracked_points = all_map_points.size();
+    for(; this->_num_tracked_points < current_num_tracked_points; ++this->_num_tracked_points)
+    {
+        point_cloud.push_back(all_map_points[this->_num_tracked_points]->GetWorldPos());
+    }
+    return point_cloud;
 }
 
-std::vector<cv::KeyPoint> OrbSlammer::GetTrackedKeyPointsUn()
+std::vector<cv::Mat> OrbSlammer::GetWorldPointCloud()
 {
-    return this->_slam_system.GetTrackedKeyPointsUn();
+    std::vector<cv::Mat> point_cloud;
+    std::vector<ORB_SLAM2::MapPoint*> all_map_points;
+    unsigned int all_map_points_size = all_map_points.size();
+    for(unsigned int i = 0; i < all_map_points_size; ++i)
+    {
+        point_cloud.push_back(all_map_points[i]->GetWorldPos());
+    }
+    return point_cloud;
 }
